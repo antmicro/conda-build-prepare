@@ -28,6 +28,7 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose", action="store_true", help="Add more verbosity to output")
     parser.add_argument("--dir", action="store", required=True, type=newDir, dest="directory", help="Use DIRECTORY to store generated files and cloned repository")
     parser.add_argument("--channels", action="store", required=False, metavar="CHANNEL", nargs="+", help="Each CHANNEL will be added to the environment's '.condarc' (with the last one on top)")
+    parser.add_argument("--packages", action="store", required=False, metavar="PACKAGE", nargs="+", help="Each PACKAGE will be installed in the output environment alongside 'conda-build'")
     args = parser.parse_args()
 
     os.mkdir(args.directory)
@@ -37,10 +38,6 @@ if __name__ == '__main__':
 
     prepare_directory(args.package, recipe_dir)
 
-    # Those will be installed in the prepared environment
-    env_packages = 'python=3.7 conda-build conda-verify anaconda-client jinja2 pexpect'
-    if sys.platform.startswith('linux') or sys.platform == 'darwin':
-        env_packages += ' ripgrep'
     # Those will be applied in the prepared environment
     env_settings = {
             'set': {
@@ -52,7 +49,7 @@ if __name__ == '__main__':
     if args.channels is not None:
         env_settings['prepend'] = { 'channels': args.channels }
 
-    prepare_environment(recipe_dir, env_dir, env_packages, env_settings)
+    prepare_environment(recipe_dir, env_dir, args.packages or [], env_settings)
 
     prepare_recipe(recipe_dir, git_dir, env_dir)
 
