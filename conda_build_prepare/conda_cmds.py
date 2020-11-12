@@ -291,6 +291,7 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
             return ''
         conda_context = {
                 'environ':              os.environ,
+                'os':                   os,
                 'GIT_BUILD_STR':        '',
                 'GIT_DESCRIBE_HASH':    '',
                 'GIT_DESCRIBE_NUMBER':  '',
