@@ -8,6 +8,7 @@ import io
 import shutil
 import tempfile
 import sys
+import jinja2
 
 from .prepare import get_local_channels, get_package_condarc
 from .git_helpers import git_checkout, git_clone, git_describe, \
@@ -283,15 +284,34 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
         # Read 'meta.yaml' contents
         meta_contents = meta_file.read()
 
-        # Load yaml after neutralizing Jinja templates
-        meta = yaml.safe_load(meta_contents.replace('{%', '#').replace('{{', 'x #'))
+        # Load yaml with mostly dummy Jinja2 structures used in Conda recipes
+        conda_context = {
+                'environ':              os.environ,
+                'GIT_BUILD_STR':        '',
+                'GIT_DESCRIBE_HASH':    '',
+                'GIT_DESCRIBE_NUMBER':  '',
+                'GIT_DESCRIBE_TAG':     '',
+                'GIT_FULL_HASH':        '',
+                'compiler':             lambda _: '',
+                'pin_compatible':       lambda _: '',
+                'pin_subpackage':       lambda _: '',
+                'resolved_packages':    lambda _: [],
+                }
+        jinja_rendered_meta = jinja2.Template(meta_contents).render(conda_context)
+
+        # Yaml loader doesn't like [OS] after quoted strings (which are OK for Conda)
+        # Quotes are removed before loading as they are irrelevant at this point
+        meta = yaml.safe_load(jinja_rendered_meta.replace('"', ''))
 
         if len(list(get_git_uris(meta))) < 1:
-            print('\nNo git repositories in the package recipe; version won\'t be set.\n')
+            print()
+            print('No git repositories in the package recipe; version won\'t be set.')
+            print()
         else:
             # Download sources and make conda use always those
-            print('Downloading git sources...\n')
-    
+            print('Downloading git sources...')
+            print()
+
             sources = meta['source']
             os.mkdir(git_repos_dir)
             first_git_repo_path = None
@@ -307,7 +327,7 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
                             f"git_url: {src['git_url']}", f"git_url: {local_git_url}")
                     if first_git_repo_path is None:
                         first_git_repo_path = local_git_url
-    
+
             # Set version based on modified git repo
             print('Modifying git tags to set proper package version...\n')
 
