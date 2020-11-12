@@ -338,7 +338,8 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
             git_rewrite_tags(first_git_repo_path)
             _add_extra_tags_if_exist(package_dir, first_git_repo_path)
             version = git_describe(first_git_repo_path).replace('-', '_')
-            meta_contents = meta_contents.replace('version: ', f"version: {version} #")
+            meta_contents = re.sub(r'(\s+version:).+', r'\1 ' + str(version),
+                    meta_contents)
 
             # Reset 'meta.yaml' and save metadata without GIT_* vars
             meta_file.seek(0)
