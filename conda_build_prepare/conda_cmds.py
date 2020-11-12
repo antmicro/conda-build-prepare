@@ -294,17 +294,19 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
     
             sources = meta['source']
             os.mkdir(git_repos_dir)
-    
+            first_git_repo_path = None
+
             # Make sources a one-element list if it's not a list
             if not isinstance(sources, list):
                 sources = [ sources ]
             for src in sources:
-                local_git_url = _prepare_single_source(git_repos_dir, src)
-                meta_contents = meta_contents.replace(
-                        f"git_url: {src['git_url']}", f"git_url: {local_git_url}")
-                if src == sources[0]:
-                    # For multiple git repositories in sources, always the first one has tags modified
-                    first_git_repo_path = local_git_url
+                # The recipe can have some mix of git and non-git sources
+                if 'git_url' in src:
+                    local_git_url = _prepare_single_source(git_repos_dir, src)
+                    meta_contents = meta_contents.replace(
+                            f"git_url: {src['git_url']}", f"git_url: {local_git_url}")
+                    if first_git_repo_path is None:
+                        first_git_repo_path = local_git_url
     
             # Set version based on modified git repo
             print('Modifying git tags to set proper package version...\n')
