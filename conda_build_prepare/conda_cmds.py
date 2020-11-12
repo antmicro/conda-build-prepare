@@ -285,6 +285,10 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
         meta_contents = meta_file.read()
 
         # Load yaml with mostly dummy Jinja2 structures used in Conda recipes
+        def _pin_compatible(package_name, min_pin='x.x.x.x.x.x', max_pin='x', lower_bound=None, upper_bound=None):
+            return ''
+        def _pin_subpackage(package_name, min_pin='x.x.x.x.x.x', max_pin='x', exact=False):
+            return ''
         conda_context = {
                 'environ':              os.environ,
                 'GIT_BUILD_STR':        '',
@@ -293,8 +297,8 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
                 'GIT_DESCRIBE_TAG':     '',
                 'GIT_FULL_HASH':        '',
                 'compiler':             lambda _: '',
-                'pin_compatible':       lambda _: '',
-                'pin_subpackage':       lambda _: '',
+                'pin_compatible':       _pin_compatible,
+                'pin_subpackage':       _pin_subpackage,
                 'resolved_packages':    lambda _: [],
                 }
         jinja_rendered_meta = jinja2.Template(meta_contents).render(conda_context)
