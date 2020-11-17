@@ -280,9 +280,11 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
     # Render metadata
 
     meta_path = os.path.join(package_dir, 'meta.yaml')
+
     with(open(meta_path, 'r+')) as meta_file:
         # Read 'meta.yaml' contents
         meta_contents = meta_file.read()
+        original_meta = meta_contents
 
         # Load yaml with mostly dummy Jinja2 structures used in Conda recipes
         def _pin_compatible(package_name, min_pin='x.x.x.x.x.x', max_pin='x', lower_bound=None, upper_bound=None):
@@ -389,9 +391,11 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
                 _try_cygpath_on_git_url(meta['source'])
         meta_file.write(yaml.safe_dump(meta))
         meta_file.write('\n')
+
+        # Save original meta.yaml contents as a comment at the end
         meta_file.write('# Original meta.yaml:\n')
         meta_file.write('#\n')
-        meta_file.writelines(list(map(lambda line: '#' + line, meta_lines)))
+        meta_file.write('# ' + original_meta.replace('\n', '\n# ')[:-2])
 
 def _try_cygpath_on_git_url(src_dict):
     try:
