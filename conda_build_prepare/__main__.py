@@ -50,14 +50,19 @@ if __name__ == '__main__':
         env_settings['prepend'] = { 'channels': args.channels }
 
     prepare_environment(recipe_dir, env_dir, args.packages or [], env_settings)
-
     prepare_recipe(recipe_dir, git_dir, env_dir)
+
+    # Print information about building
+    recipe_relpath = os.path.relpath(recipe_dir)
+    variants_path = os.path.join(recipe_relpath, 'rendering_variants.yaml')
+    build_args = f"-m {variants_path} {recipe_relpath}" if os.path.exists(variants_path) \
+            else recipe_relpath
 
     print()
     print("To build the package in the prepared environment, run:")
     print(f"  conda activate {os.path.relpath(env_dir)}")
-    print(f"  conda build {os.path.relpath(recipe_dir)}")
+    print(f"  conda build {build_args}")
     print("or:")
-    print(f"  conda run -p {os.path.relpath(env_dir)} conda build {os.path.relpath(recipe_dir)}")
+    print(f"  conda run -p {os.path.relpath(env_dir)} conda build {build_args}")
     print()
 

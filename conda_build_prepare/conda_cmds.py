@@ -51,8 +51,22 @@ def get_package_config(package_dir, env_dir, verbose=False):
     print('Rendering package metadata, please wait...\n')
     meta = None
     try:
+        # Save metadata as 'rendered_metadata.yaml' and capture output to get variants
         rendered_path = os.path.join(package_dir, 'rendered_metadata.yaml')
-        _call_conda_cmd_in_env(f"conda render -f {rendered_path} {package_dir}", env_dir)
+        output = _call_conda_cmd_in_env(f"conda render -f {rendered_path} {package_dir}", env_dir)
+
+        # Variants influence building; 'conda-build' set some of them e.g. based on
+        # {{ compiler(X) }} templates which won't be in 'meta.yaml' after rendering
+        variants = re.search(r'\{.*\}', output).group(0)
+        if variants != '{}':
+            variants_path = os.path.join(package_dir, 'rendering_variants.yaml')
+            print(f"Captured '{variants}' values during rendering; saving as '{variants_path}'")
+            print()
+
+            with open(variants_path, 'w') as variants_file:
+                variants_dict = eval(variants)
+                variants_file.write(yaml.safe_dump(variants_dict))
+
         with open(rendered_path, 'r') as rendered_file:
             meta = yaml.safe_load(rendered_file.read())
     except:
