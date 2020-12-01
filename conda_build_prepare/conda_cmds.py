@@ -2,13 +2,19 @@
 import os
 import json
 import subprocess
-import yaml
 import re
 import io
 import shutil
 import tempfile
 import sys
 import jinja2
+
+# Conda's `pip` doesn't install `ruamel.yaml` because it finds it is already
+# installed but the one from Conda has to be imported with `ruamel_yaml`
+try:
+    from ruamel.yaml import YAML
+except ModuleNotFoundError:
+    from ruamel_yaml import YAML
 
 from .prepare import get_local_channels, get_package_condarc
 from .git_helpers import git_checkout, git_clone, git_describe, \
@@ -49,7 +55,7 @@ def render_metadata(package_dir, env_dir, verbose=False):
         rendered_path = os.path.join(package_dir, 'rendered_metadata.yaml')
         _call_conda_cmd_in_env(f"conda render -f {rendered_path} {package_dir}", env_dir)
         with open(rendered_path, 'r') as rendered_file:
-            meta = yaml.safe_load(rendered_file.read())
+            meta = YAML().load(rendered_file.read())
     except:
         print('Error during package metadata rendering!')
         raise
@@ -90,7 +96,7 @@ def create_env(package_dir):
 
     data = {}
     if os.path.exists(package_condarc):
-        data = yaml.safe_load(open(package_condarc))
+        data = YAML().load(open(package_condarc))
 
     for lc in reversed(get_local_channels()):
         data['channels'].insert(0, lc)
@@ -98,7 +104,7 @@ def create_env(package_dir):
     prefix = run("create", "--name", package, "--strict-channel-priority")
     env_condarc = os.path.join(prefix, 'condarc')
     with open(env_condarc, "w") as f:
-        yaml.safe_dump(data, f)
+        YAML().dump(data, f)
 
     print(open(env_condarc).read())
 
@@ -168,8 +174,8 @@ def prepare_environment(recipe_dir, env_dir, package_list, env_settings):
     assert os.path.exists(os.path.join(recipe_dir, 'meta.yaml')), recipe_dir
     assert not os.path.exists(env_dir), env_dir
     assert os.path.isabs(env_dir), env_dir
-    assert type(env_settings) is dict, env_settings
-    assert type(package_list) is list, package_list
+    assert isinstance(env_settings, dict), env_settings
+    assert isinstance(package_list, list), package_list
 
     print('Preparing the environment, please wait...\n')
 
@@ -216,7 +222,7 @@ def prepare_environment(recipe_dir, env_dir, package_list, env_settings):
         # It can be a single command for each action
         command = f"conda config --env"
         for key in env_settings[action]:
-            if type(env_settings[action][key]) is list:
+            if isinstance(env_settings[action][key], list):
                 values = env_settings[action][key]
             # If not a list, create a single-element list 'values'
             else:
@@ -288,7 +294,7 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
 
         # Yaml loader doesn't like [OS] after quoted strings (which are OK for Conda)
         # Quotes are removed before loading as they are irrelevant at this point
-        meta = yaml.safe_load(jinja_rendered_meta.replace('"', ''))
+        meta = YAML().load(jinja_rendered_meta.replace('"', ''))
 
         if len(list(find("git_url", meta))) < 1:
             print()
@@ -337,7 +343,7 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
 
     if 'build' in meta.keys() and 'script_env' in meta['build'].keys():
         env_vars = meta['build']['script_env']
-        assert type(env_vars) is list, env_vars
+        assert isinstance(env_vars, list), env_vars
 
         vars_string = ''
         env_vars_set = []
@@ -377,20 +383,18 @@ def prepare_recipe(package_dir, git_repos_dir, env_dir):
             meta['requirements']['build'].append(yaml_compiler)
 
         meta_file.seek(0)
-        meta_file.write('# Rendered by the conda-build-prepare\n')
+        meta_file.write('# Rendered by conda-build-prepare\n')
         meta_file.write('# Original meta.yaml can be found at the end of this file\n')
         meta_file.write('\n')
-        # Save the 'package' section first (Windows needs it)
-        pkg_section = { 'package': meta.pop('package') }
-        meta_file.write(yaml.safe_dump(pkg_section))
+
         # Convert local git_urls with cygpath, if available
         if sys.platform in ['cygwin', 'msys', 'win32']:
-            if type(meta['source']) is list:
+            if isinstance(meta['source'], list):
                 for src in meta['source']:
                     _try_cygpath_on_git_url(src)
             else:
                 _try_cygpath_on_git_url(meta['source'])
-        meta_file.write(yaml.safe_dump(meta))
+        YAML().dump(meta, meta_file)
         meta_file.write('\n')
 
         # Save original meta.yaml contents as a comment at the end
