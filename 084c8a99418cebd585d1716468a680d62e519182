@@ -1,0 +1,8 @@
+{
+    "title": "conda-build-prepare",
+    "abstract": "<p>This repository contains a tool for unified conda package building.</p>",
+    "tags": [
+      "conda"
+    ],
+    "categories": ["ASIC & FPGA", "Edge AI & Software"]
+}
